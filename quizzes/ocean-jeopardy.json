@@ -1,0 +1,21 @@
+{
+  "title": "Ocean Jeopardy",
+  "settings": { "format": "board", "unit": "$", "timer": 30, "players": 3 },
+  "board": {
+    "values": [100, 200, 300],
+    "categories": [
+      { "name": "Ocean Animals", "clues": [
+        { "q": "The largest animal on Earth", "a": "Blue whale" },
+        { "q": "Sea otters use these as tools to crack open shellfish", "a": "Rocks" },
+        { "q": "A squid has eight arms plus two of these", "a": "Tentacles" } ] },
+      { "name": "Geography", "clues": [
+        { "q": "The largest ocean on Earth", "a": "The Pacific" },
+        { "q": "The ocean that surrounds Antarctica", "a": "The Southern Ocean" },
+        { "q": "The Great Barrier Reef lies off the coast of this country", "a": "Australia" } ] },
+      { "name": "Beach Day", "clues": [
+        { "q": "The twice-daily rise and fall of the sea", "a": "Tides" },
+        { "q": "Its pull on the oceans is the main cause of tides", "a": "The Moon" },
+        { "q": "Hermit crabs move into these borrowed homes", "a": "Empty shells" } ] }
+    ]
+  }
+}
