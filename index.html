@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quizotter</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF7F9; --card:#FFFFFF; --ink:#0D2B3A; --muted:#4F6E7C; --line:#CFE3EA;
+  --accent:#0C6F92; --accent-ink:#FFFFFF; --pop:#FFC93C; --bad:#D93A44;
+  /* the stage stays the same in light and dark: it's what people see on the call */
+  --stage:#0B5C82; --stage-top:#1782AE; --stage-deep:#06405C; --stage-ink:#FFFFFF;
+  --answer:#FFD23F; --answer-ink:#0D2B3A; --stage-bad:#FF7A82;
+  --font:"Bricolage Grotesque", ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#071C26; --card:#0D2A38; --ink:#E4F4F9; --muted:#9BC1CF; --line:#1D4556;
+    --accent:#5CC8E8; --accent-ink:#071C26; --bad:#FF7A82; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#071C26; --card:#0D2A38; --ink:#E4F4F9; --muted:#9BC1CF; --line:#1D4556;
+  --accent:#5CC8E8; --accent-ink:#071C26; --bad:#FF7A82; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.5;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--pop);outline-offset:2px}
+[hidden]{display:none!important}
+
+.wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+.btn{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:9px 16px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.link{background:none;border:0;padding:4px 0;color:var(--muted);font-weight:600;cursor:pointer}
+.link:hover{color:var(--ink)}
+a.link{text-decoration:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* home */
+.mark{font-size:clamp(44px,9vw,76px);font-weight:800;letter-spacing:-.035em;line-height:.95;margin:24px 0 12px;display:flex;align-items:center;gap:.2em}
+.mark .badge{display:inline-grid;place-items:center;width:1em;height:1em;border-radius:50%;background:var(--pop);font-size:.82em;line-height:1}
+.mark .badge span{font-size:.7em;transform:rotate(-8deg)}
+.lede{color:var(--muted);max-width:34em;margin:0 0 24px;font-size:19px}
+h2{font-size:22px;margin:40px 0 12px;letter-spacing:-.01em}
+.qz{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 0;border-top:2px solid var(--line)}
+.qz:last-child{border-bottom:2px solid var(--line)}
+.qz h3{margin:0;font-size:19px}
+.qz small{color:var(--muted)}
+.kind{display:inline-block;font-size:13px;font-weight:700;border-radius:999px;padding:1px 10px;margin-right:8px;vertical-align:1px;border:2px solid var(--line);color:var(--muted)}
+.kind.jb{background:var(--pop);border-color:var(--pop);color:#0D2B3A}
+.qz .row{gap:4px}
+.qz .row .link{padding:4px 8px}
+.qz .row .link.go{color:var(--accent)}
+.empty{padding:24px;border:2px dashed var(--line);border-radius:16px;color:var(--muted)}
+.empty p{margin:0 0 12px}
+
+/* editor */
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.saved{color:var(--muted);font-size:14px}
+.title-in{width:100%;font-size:clamp(30px,6vw,44px);font-weight:800;letter-spacing:-.025em;border:0;border-bottom:3px solid var(--line);background:transparent;padding:6px 0;margin-bottom:16px}
+.title-in:focus{outline:none;border-color:var(--accent)}
+.opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;margin:20px 0 0;padding:12px 16px;border:2px solid var(--line);border-radius:14px;background:var(--card)}
+.opt{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer}
+.opt input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+.opt-group{display:flex;align-items:center;gap:10px}
+.opts select{border:2px solid var(--line);border-radius:9px;background:var(--bg);padding:3px 6px}
+.opts select:disabled,.stepper.off{opacity:.4}
+.stepper{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.stepper button{width:28px;height:28px;border-radius:8px;border:2px solid var(--line);background:transparent;cursor:pointer;font-weight:800;line-height:1}
+.stepper b{color:var(--ink);min-width:1.4em;text-align:center}
+.qlist{list-style:none;padding:0;margin:24px 0 16px}
+.qrow{display:grid;grid-template-columns:40px 1fr auto;gap:12px;padding:16px;background:var(--card);border:2px solid var(--line);border-radius:16px;margin-bottom:12px}
+.qnum{font-weight:800;font-size:22px;color:var(--accent);line-height:1.6}
+.qfields{display:grid;gap:8px}
+.qfields textarea,.qfields input,.bulk textarea{width:100%;border:2px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;resize:vertical}
+.qfields textarea[data-f=q]{font-weight:600}
+.qfields [data-f=a]{border-color:color-mix(in srgb,var(--pop) 70%,var(--line))}
+.qtools{display:flex;flex-direction:column;gap:4px}
+.qtools button{width:34px;height:34px;border-radius:9px;border:2px solid var(--line);background:transparent;cursor:pointer}
+.qtools button:hover{border-color:var(--accent)}
+.qtools button.del:hover{border-color:var(--bad);color:var(--bad)}
+.bulk{margin-top:24px;color:var(--muted)}
+.bulk summary{cursor:pointer;font-weight:600}
+.bulk textarea{margin:8px 0;color:var(--ink)}
+code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+@media (max-width:560px){ .qrow{grid-template-columns:1fr auto;padding:12px} .qnum{display:none} }
+
+/* preview of a shared quiz */
+.preview{margin-top:10vh}
+.preview .count{color:var(--muted);font-size:19px;margin:0 0 24px}
+.tip{color:var(--muted);font-size:15px;margin-top:28px;max-width:32em}
+
+/* host stage: sunlight from the surface, deeper water below */
+.stage{position:fixed;inset:0;color:var(--stage-ink);display:grid;grid-template-rows:auto 1fr auto auto;overflow:hidden;overflow:clip;
+  background:radial-gradient(120% 70% at 50% -10%, var(--stage-top) 0%, var(--stage) 55%, var(--stage-deep) 100%);
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.progress{position:absolute;top:0;left:0;height:6px;background:var(--answer);transition:width .3s}
+.bar{display:flex;align-items:center;gap:12px;padding:16px 20px 8px;flex-wrap:wrap}
+.bar .grow{flex:1;font-size:clamp(20px,2.2vw,30px);font-weight:800;letter-spacing:-.01em;line-height:1.2;opacity:.95;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbtn{background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);color:var(--stage-ink);border-radius:12px;padding:8px 14px;font-weight:600;cursor:pointer}
+.sbtn:hover{background:rgba(255,255,255,.2)}
+.sbtn.big{padding:12px 24px;font-size:20px}
+.sbtn.reveal{background:var(--answer);color:var(--answer-ink);border-color:var(--answer);min-width:10em}
+.timer{display:flex;align-items:center;gap:6px}
+.timer .clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:22px;min-width:3.2em;text-align:center;border-radius:10px;padding:4px 8px;background:var(--stage-deep)}
+.timer .clock.low{background:var(--stage-bad)}
+.timer .clock.done{animation:pulse .5s 4 alternate}
+.timer select{background:var(--stage-deep);border:2px solid rgba(255,255,255,.25);border-radius:10px;padding:6px;color:var(--stage-ink)}
+@keyframes pulse{to{transform:scale(1.15)}}
+
+.stage-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6vw;text-align:center;gap:3.5vh;min-height:0}
+.qtag{font-weight:800;font-size:clamp(18px,2.2vw,28px);background:var(--stage-ink);color:var(--stage);border-radius:999px;padding:4px 20px;transform:rotate(-3deg)}
+.qtext{font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:0;max-width:22em;text-wrap:balance}
+.qtext.xl{font-size:clamp(32px,5.2vw,76px)}
+.qtext.l{font-size:clamp(26px,4vw,54px)}
+.qtext.m{font-size:clamp(21px,2.8vw,38px);line-height:1.2}
+.answer{min-height:3em;display:grid;place-items:center;padding:14px 32px;border-radius:20px;font-size:clamp(24px,3.4vw,46px);font-weight:800;max-width:90%}
+.answer.hidden{border:3px dashed rgba(255,255,255,.35);color:rgba(255,255,255,.6);font-size:clamp(16px,1.8vw,22px);font-weight:600}
+.answer.shown{background:var(--answer);color:var(--answer-ink);animation:flip .5s cubic-bezier(.3,1.5,.5,1);white-space:pre-line}
+.answer.multi{font-size:clamp(18px,2.3vw,30px);line-height:1.3;padding:16px 36px}
+.note{font-size:clamp(15px,1.6vw,20px);opacity:.85;max-width:36em;margin:-1.5vh 0 0}
+@keyframes flip{from{transform:perspective(600px) rotateX(90deg) scale(.8)}to{transform:none}}
+.controls{display:flex;justify-content:center;gap:12px;padding:10px 20px 6px;flex-wrap:wrap}
+.keys{text-align:center;font-size:13px;opacity:.6;padding:0 20px 10px}
+
+/* player roster */
+.roster{display:flex;justify-content:center;gap:10px;padding:60px 16px 14px;background:rgba(3,40,58,.55);flex-wrap:nowrap;overflow-x:auto}
+.pcard{position:relative;flex:0 1 140px;min-width:100px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 6px 10px;border-radius:16px;background:rgba(255,255,255,.08);border:2px solid transparent}
+/* creatures stand free and pop up over the top of their card, like peeking out of the water */
+.pa{position:relative;width:96px;height:80px;margin-top:-40px;border:0;background:none;font-size:72px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;
+  filter:drop-shadow(0 6px 0 rgba(3,40,58,.35));transition:transform .15s ease}
+.pa:hover{transform:scale(1.08) rotate(-5deg)}
+.crown{position:absolute;top:-16px;left:50%;transform:translateX(-50%) rotate(-12deg);font-size:30px;line-height:1;pointer-events:none;z-index:1;filter:drop-shadow(0 2px 0 rgba(3,40,58,.35))}
+/* name plates look like buoys: white with red end bands */
+.pn{border:0;color:#0D2B3A;font-weight:700;font-size:14px;line-height:1.2;padding:4px 12px;border-radius:14px;cursor:text;max-width:100%;
+  background:linear-gradient(90deg,#E8544E 0 6px,#FFFFFF 6px calc(100% - 6px),#E8544E calc(100% - 6px));box-shadow:0 2px 0 rgba(3,40,58,.35);
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:break-word}
+.pn:hover{outline:2px solid var(--answer);outline-offset:1px}
+.ps{display:flex;align-items:center;gap:6px}
+.ps b{font-size:28px;font-weight:800;color:var(--answer);font-variant-numeric:tabular-nums;min-width:1.2em;text-align:center}
+.ps b.neg{color:var(--stage-bad)}
+.pm{width:26px;height:26px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:var(--stage-ink);font-weight:800;line-height:1;cursor:pointer;opacity:.55}
+.pm:hover{opacity:1;background:rgba(255,122,130,.4)}
+.pk{position:absolute;top:6px;left:9px;font-size:12px;opacity:.4}
+.pcard.up{animation:up .45s}
+.pcard.down{animation:down .4s}
+@keyframes up{40%{transform:translateY(-6px);border-color:var(--answer)}}
+@keyframes down{30%{transform:translateX(-4px);border-color:var(--stage-bad)}60%{transform:translateX(4px)}}
+.pcard.editing{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)}
+.pin{width:100%;border:0;border-radius:6px;padding:3px 6px;font-size:14px;font-weight:600;text-align:center;background:#fff;color:var(--answer-ink)}
+.pedit{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.pedit button{background:none;border:0;color:var(--stage-ink);font-size:12px;opacity:.75;cursor:pointer;padding:2px 4px;border-radius:5px}
+.pedit button:hover{opacity:1;background:rgba(255,255,255,.15)}
+.pcard.empty{cursor:pointer;flex:0 0 56px;min-width:56px;background:transparent;border:2px dashed rgba(255,255,255,.16);color:rgba(255,255,255,.4);font-size:26px;justify-content:center;min-height:110px;padding:0}
+.pcard.empty:hover{border-color:rgba(255,255,255,.45);color:rgba(255,255,255,.8)}
+
+.end h1{font-size:clamp(40px,7vw,96px);margin:0;letter-spacing:-.03em;line-height:1}
+.board{list-style:none;padding:0;margin:0;min-width:min(520px,90vw);text-align:left}
+.board li{display:flex;justify-content:space-between;gap:16px;font-size:clamp(18px,2.4vw,32px);font-weight:600;padding:6px 18px;border-radius:14px}
+.board li:first-child{background:var(--answer);color:var(--answer-ink);font-weight:800}
+
+.wrap.wide{max-width:1120px}
+/* format switch */
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
+.seg button{border:0;background:transparent;padding:5px 12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+/* board editor: a 2-D grid, categories across, point values down */
+.bd-scroll{overflow-x:auto;margin:20px 0 10px;padding-bottom:6px}
+.bd-grid{display:grid;grid-template-columns:84px repeat(var(--cols),minmax(130px,1fr));gap:6px;min-width:calc(84px + var(--cols) * 136px)}
+.bd-corner{display:grid;place-items:center}
+.bd-corner select{width:100%;border:2px solid var(--line);border-radius:10px;background:var(--card);padding:6px 4px;font-weight:700}
+.bd-cat{width:100%;font-weight:800;text-align:center;border:2px solid var(--line);border-radius:10px;background:var(--card);padding:8px 6px}
+.bd-val{width:100%;text-align:center;font-weight:800;color:var(--accent);border:2px solid var(--line);border-radius:10px;background:var(--bg);padding:6px 2px}
+.bd-cell{min-height:74px;border:2px dashed var(--line);border-radius:10px;background:transparent;color:var(--muted);font-size:14px;padding:8px;cursor:pointer;text-align:left;line-height:1.3}
+.bd-cell.filled{border-style:solid;background:var(--card);color:var(--ink)}
+.bd-cell:hover{border-color:var(--accent)}
+.bd-cell .t{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bd-tools{display:flex;gap:8px;flex-wrap:wrap}
+.modal label{display:grid;gap:4px;font-size:14px;font-weight:600;color:var(--muted)}
+.modal input,.modal textarea.field{width:100%;border:2px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;color:var(--ink);font-size:16px;word-break:normal}
+.modal .spread{justify-content:space-between}
+/* board on the host screen */
+.stage-main.is-board{align-items:stretch;padding:0 2.5vw;overflow-x:auto}
+.grid{flex:1;display:grid;grid-template-columns:repeat(var(--cols),minmax(96px,1fr));grid-template-rows:auto repeat(var(--rows),1fr);gap:8px;min-height:0;padding-bottom:4px}
+.grid .cat{background:rgba(3,40,58,.6);border-radius:12px;display:grid;place-items:center;padding:10px 8px;font-weight:800;font-size:clamp(14px,1.7vw,24px);line-height:1.1;text-wrap:balance}
+.tile{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.12);border-radius:12px;color:var(--answer);font-weight:800;font-size:clamp(20px,3.2vw,50px);cursor:pointer;font-variant-numeric:tabular-nums;min-height:40px}
+.tile:hover{background:rgba(255,255,255,.2)}
+.tile:disabled{background:transparent;border:2px dashed rgba(255,255,255,.1);color:transparent;cursor:default}
+/* played tiles stay clickable but read as done: faded, crossed out, with a check */
+.tile.played{position:relative;background:rgba(3,40,58,.35);border-color:rgba(255,255,255,.06);color:rgba(255,255,255,.28);text-decoration:line-through;text-decoration-thickness:3px}
+.tile.played::after{content:'✓';position:absolute;top:6px;right:10px;font-size:16px;color:rgba(255,255,255,.55)}
+.tile.played:hover{background:rgba(3,40,58,.55);color:rgba(255,255,255,.5)}
+.tagrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.played-tag{font-weight:700;font-size:clamp(13px,1.4vw,17px);background:rgba(3,40,58,.6);border:2px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 14px}
+.sbtn.back{min-width:10em}
+.sbtn.back-top{font-weight:700;background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);padding:8px 16px}
+.sbtn.back-top:hover{background:rgba(255,255,255,.32)}
+.sbtn.gold{background:var(--answer);color:var(--answer-ink);border-color:var(--answer)}
+.bit{position:fixed;width:10px;height:14px;border-radius:2px;pointer-events:none;z-index:50;animation:fly 1s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+
+.modal-back{position:fixed;inset:0;background:rgba(4,20,30,.55);display:grid;place-items:center;z-index:200;padding:20px}
+.modal{background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:16px;padding:20px;width:min(480px,100%);display:grid;gap:14px}
+.modal p{margin:0;font-weight:600}
+.modal textarea{width:100%;border:2px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;resize:vertical;font-size:14px;word-break:break-all}
+.modal .row{justify-content:flex-end}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-weight:600;z-index:100;max-width:90vw}
+@media (max-width:640px){ .keys{display:none} .sbtn.big{padding:10px 16px;font-size:17px} .roster{flex-wrap:wrap} .pcard{flex-basis:96px;min-width:88px} .pa{width:72px;height:60px;margin-top:-30px;font-size:52px} .roster{padding-top:52px;row-gap:46px} .crown{font-size:24px;top:-14px} }
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+<script>
+const app = document.getElementById('app');
+const fileInput = document.getElementById('file');
+const KEY = 'quizcaster:quizzes'; // storage name kept so existing quizzes still show up
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const plural = (n, w, many = w + 's') => `${n} ${n === 1 ? w : many}`;
+const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
+// Inside the claude.ai artifact viewer, links can't carry a quiz, so sharing uses a quiz code
+const IN_CLAUDE = !!(window.claude && window.claude.use);
+
+/* ---------- the cast: sea animals with silly starting names ---------- */
+const ANIMALS = [
+  { e: '🦦', name: 'Otterly Oscar' },     { e: '🐙', name: 'Octavia Eightarms' },
+  { e: '🦀', name: 'Captain Pinchy' },    { e: '🐳', name: 'Wally Bigsplash' },
+  { e: '🐬', name: 'Duchess Dolphina' },  { e: '🦈', name: 'Finn Chompsworth' },
+  { e: '🐢', name: 'Shelldon Slowpoke' }, { e: '🐡', name: 'Puffy McPuff' },
+  { e: '🦑', name: 'Sir Squidsalot' },    { e: '🦭', name: 'Sealvia Flippers' },
+  { e: '🦞', name: 'Lord Lobsterton' },   { e: '🐠', name: 'Bubbles Fintastic' },
+  { e: '🦐', name: 'Shrimply Steve' },    { e: '🐋', name: 'Big Barry Blowhole' },
+];
+const MAX_PLAYERS = 10, MAX_CATS = 8, MAX_ROWS = 8;
+
+const SAMPLE = { title: 'Sample quiz', questions: [
+  { q: 'Which planet in our solar system spins on its side?', a: 'Uranus', note: 'It’s tilted about 98 degrees.' },
+  { q: 'How many hearts does an octopus have?', a: 'Three', note: 'Two pump blood through the gills, one serves the rest of the body.' },
+  { q: 'Name the five Great Lakes', a: 'Superior\nMichigan\nHuron\nErie\nOntario' },
+  { q: 'Which country gave the Statue of Liberty to the United States?', a: 'France' },
+  { q: 'Sea otters hold hands while they sleep. Why?', a: 'So they don’t drift apart', note: 'A group of resting otters is called a raft.' },
+  { q: 'What’s the hardest natural substance on Earth?', a: 'Diamond' },
+]};
+const SAMPLE_BOARD = { title: 'Sample board', settings: { format: 'board', unit: '$' }, board: { values: [100, 200, 300, 400], categories: [
+  { name: 'Ocean Animals', clues: [
+    { q: 'The largest animal on Earth', a: 'Blue whale' },
+    { q: 'Sea otters use these as tools to crack open shellfish', a: 'Rocks' },
+    { q: 'A squid has eight arms plus two of these', a: 'Tentacles' },
+    { q: 'All clownfish are born this sex', a: 'Male', note: 'The largest one in a group can become female.' } ] },
+  { name: 'Geography', clues: [
+    { q: 'The largest ocean on Earth', a: 'The Pacific' },
+    { q: 'The ocean that surrounds Antarctica', a: 'The Southern Ocean' },
+    { q: 'The deepest known point in the ocean', a: 'The Challenger Deep', note: 'In the Mariana Trench.' },
+    { q: 'The Great Barrier Reef lies off the coast of this country', a: 'Australia' } ] },
+  { name: 'Ships & Sailing', clues: [
+    { q: 'The front of a ship', a: 'The bow' },
+    { q: 'The left side of a ship, facing forward', a: 'Port' },
+    { q: 'A ship’s kitchen', a: 'The galley' },
+    { q: 'A speed of one nautical mile per hour', a: 'A knot' } ] },
+  { name: 'Beach Day', clues: [
+    { q: 'The twice-daily rise and fall of the sea', a: 'Tides' },
+    { q: 'Its pull on the oceans is the main cause of tides', a: 'The Moon' },
+    { q: 'Hermit crabs move into these borrowed homes', a: 'Empty shells' },
+    { q: 'Sand dollars are close relatives of these spiny animals', a: 'Sea urchins' } ] },
+] } };
+
+/* ---------- storage ---------- */
+function loadAll(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
+function saveAll(list){
+  try { localStorage.setItem(KEY, JSON.stringify(list)); return true; }
+  catch { toast('Couldn’t save: this browser is blocking storage. Download the quiz to keep it.'); return false; }
+}
+function prep(q){
+  if (!q) return q;
+  q.settings = normSettings(q.settings);
+  q.questions = q.questions || [];
+  if (q.settings.format === 'board') q.board = normBoard(q.board) || newBoard();
+  return q;
+}
+function getQuiz(id){ return prep(loadAll().find(x => x.id === id)); }
+function upsert(quiz){
+  const list = loadAll(); quiz.updated = Date.now();
+  const i = list.findIndex(x => x.id === quiz.id);
+  if (i >= 0) list[i] = quiz; else list.unshift(quiz);
+  return saveAll(list);
+}
+function removeQuiz(id){ saveAll(loadAll().filter(x => x.id !== id)); }
+
+/* ---------- quiz format ---------- */
+// answers can run up to 5 lines
+const MAX_ANSWER_LINES = 5;
+const capLines = s => s.split('\n').slice(0, MAX_ANSWER_LINES).join('\n');
+const lineCount = s => Math.min(MAX_ANSWER_LINES, Math.max(1, s.split('\n').length));
+const TIMER_CHOICES = [10, 15, 20, 30, 45, 60, 90, 120];
+const DEFAULT_VALUES = [100, 200, 300, 400, 500];
+const blankClue = () => ({ q: '', a: '', note: '' });
+const toClue = x => { const o = Array.isArray(x) ? { q: x[0], a: x[1], note: x[2] } : (x || {});
+  return { q: String(o.q ?? o.question ?? ''), a: capLines(String(o.a ?? o.answer ?? '')), note: String(o.note ?? '') }; };
+
+// optional features, each quiz has its own: format, timer, keep score, and $ or points on boards
+function normSettings(s){
+  s = s || {};
+  const base = { format: s.format === 'board' ? 'board' : 'list', unit: s.unit === 'pts' ? 'pts' : '$' };
+  if ('timerOn' in s) return { ...base,
+    timerOn: !!s.timerOn, timerLen: clamp(Number(s.timerLen) || 30, 5, 600),
+    scoreOn: !!s.scoreOn, players: clamp(Math.round(Number(s.players) || 3), 1, MAX_PLAYERS) };
+  const t = s.timer, p = s.players;   // file / share form: number, or false when off
+  return { ...base,
+    timerOn: t !== false && t !== 0, timerLen: clamp(Number(t) || 30, 5, 600),
+    scoreOn: p !== false && p !== 0, players: clamp(Math.round(Number(p) || 3), 1, MAX_PLAYERS) };
+}
+const settingsOut = s => ({ format: s.format, ...(s.format === 'board' ? { unit: s.unit } : {}),
+  timer: s.timerOn ? s.timerLen : false, players: s.scoreOn ? s.players : false });
+
+function newBoard(cols = 5, values = DEFAULT_VALUES){
+  return { values: [...values], categories: Array.from({ length: cols }, () => ({ name: '', clues: values.map(blankClue) })) };
+}
+function normBoard(raw){
+  if (!raw || typeof raw !== 'object') return null;
+  let values = (raw.values ?? raw.v ?? DEFAULT_VALUES).map(Number).filter(Number.isFinite).slice(0, MAX_ROWS);
+  if (!values.length) values = [...DEFAULT_VALUES];
+  const cats = Array.isArray(raw.categories ?? raw.c) ? (raw.categories ?? raw.c) : [];
+  return { values, categories: cats.slice(0, MAX_CATS).map(c => Array.isArray(c) ? { name: c[0], clues: c[1] } : c).map(c => ({
+    name: String(c?.name ?? ''), clues: values.map((_, r) => toClue((c?.clues ?? [])[r])) })) };
+}
+function normalize(raw){
+  if (!raw || typeof raw !== 'object') throw new Error('not a quiz');
+  const src = raw.questions ?? raw.qs ?? [];
+  if (!Array.isArray(src)) throw new Error('no questions');
+  const o = raw.o ? { timer: raw.o[0] || false, players: raw.o[1] || false, format: raw.o[2] ? 'board' : 'list', unit: raw.o[3] ? 'pts' : '$' } : raw.settings;
+  return prep({
+    id: uid(),
+    title: String(raw.title ?? raw.t ?? 'Untitled quiz').slice(0, 200),
+    settings: normSettings(o),
+    questions: src.map(toClue),
+    board: normBoard(raw.board ?? raw.b),
+  });
+}
+const isBoard = quiz => quiz.settings?.format === 'board';
+const clueOut = ({ q, a, note }) => note ? { q, a, note } : { q, a };
+const clueTiny = x => x.note ? [x.q, x.a, x.note] : [x.q, x.a];
+const forFile = quiz => isBoard(quiz)
+  ? { title: quiz.title, settings: settingsOut(quiz.settings),
+      board: { values: quiz.board.values, categories: quiz.board.categories.map(c => ({ name: c.name, clues: c.clues.map(clueOut) })) } }
+  : { title: quiz.title, settings: settingsOut(quiz.settings), questions: quiz.questions.map(clueOut) };
+const compact = quiz => { const s = settingsOut(quiz.settings), o = [s.timer || 0, s.players || 0, isBoard(quiz) ? 1 : 0, quiz.settings.unit === 'pts' ? 1 : 0];
+  return isBoard(quiz)
+    ? { t: quiz.title, o, b: { v: quiz.board.values, c: quiz.board.categories.map(c => [c.name, c.clues.map(clueTiny)]) } }
+    : { t: quiz.title, o, qs: quiz.questions.map(clueTiny) }; };
+const clueCount = quiz => isBoard(quiz)
+  ? quiz.board.categories.reduce((n, c) => n + c.clues.filter(x => x.q.trim()).length, 0)
+  : quiz.questions.length;
+const describe = quiz => isBoard(quiz)
+  ? `${plural(quiz.board.categories.length, 'category', 'categories')}, ${plural(clueCount(quiz), 'clue')}`
+  : plural(quiz.questions.length, 'question');
+// "$300" on boards set to dollars, plain numbers everywhere else
+const money = (n, quiz) => isBoard(quiz) && quiz.settings.unit === '$' ? (n < 0 ? '-$' : '$') + Math.abs(n) : String(n);
+
+/* ---------- sharing: the quiz is compressed into a code, no server needed ---------- */
+const b64u = bytes => { let s = ''; for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const unb64u = str => { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '=';
+  return Uint8Array.from(atob(str), c => c.charCodeAt(0)); };
+async function pipe(bytes, stream){ return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+async function encodeQuiz(quiz){
+  const bytes = new TextEncoder().encode(JSON.stringify(compact(quiz)));
+  if ('CompressionStream' in window) return 'z' + b64u(await pipe(bytes, new CompressionStream('deflate-raw')));
+  return 'j' + b64u(bytes);
+}
+async function decodeQuiz(code){
+  let bytes = unb64u(code.slice(1));
+  if (code[0] === 'z') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+  else if (code[0] !== 'j') throw new Error('unknown format');
+  return normalize(JSON.parse(new TextDecoder().decode(bytes)));
+}
+async function pasteCode(){
+  const raw = await modal({ text: 'Paste a quiz code or share link', field: 'edit', ok: 'Open quiz' });
+  if (!raw || !raw.trim()) return;
+  const str = raw.trim(), code = str.includes('#q=') ? str.split('#q=')[1] : str;
+  try { showPreview(await decodeQuiz(code)); }
+  catch { toast('That code is incomplete. Copy the whole code and try again.'); }
+}
+async function shareQuiz(quiz){
+  if (!clueCount(quiz)) return toast('Write at least one question before sharing.');
+  const code = await encodeQuiz(quiz);
+  const text = IN_CLAUDE ? code : location.origin + location.pathname + '#q=' + code;
+  try { await navigator.clipboard.writeText(text); toast(IN_CLAUDE ? 'Quiz code copied. Others add it with Paste a quiz code.' : 'Share link copied'); }
+  catch { modal({ text: IN_CLAUDE ? 'Copy this quiz code' : 'Copy this share link', field: 'show', value: text, ok: 'Done', cancel: '' }); }
+}
+async function downloadQuiz(quiz){
+  const data = JSON.stringify(forFile(quiz), null, 2);
+  const filename = (quiz.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'quiz') + '.json';
+  if (IN_CLAUDE){
+    const dl = await window.claude.use('downloads');
+    if (!dl) return toast('Downloads aren’t available here. Use Copy code to keep this quiz.');
+    try { await dl.save({ filename, data }); }
+    catch (e) { if (e && e.code !== 'declined') toast('Couldn’t save the file. Use Copy code instead.'); }
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = filename;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function startHost(quiz, onExit){
+  if (!clueCount(quiz)) return toast(isBoard(quiz) ? 'Write at least one clue on the board first.' : 'Add a question first.');
+  showHost(quiz, onExit);
+}
+
+/* ---------- little helpers ---------- */
+let toastTimer;
+function toast(msg){
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2600);
+}
+function modal({ text, ok = 'OK', cancel = 'Cancel', field = null, value = '', danger = false }){
+  return new Promise(resolve => {
+    const back = document.createElement('div'); back.className = 'modal-back';
+    back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(text)}">
+      <p>${esc(text)}</p>
+      ${field ? `<textarea rows="4" ${field === 'show' ? 'readonly' : ''}>${esc(value)}</textarea>` : ''}
+      <div class="row">${cancel ? `<button class="btn" data-r="no">${esc(cancel)}</button>` : ''}
+        <button class="btn ${danger ? 'danger' : 'primary'}" data-r="yes">${esc(ok)}</button></div></div>`;
+    const ta = back.querySelector('textarea');
+    const done = yes => { back.remove(); resolve(yes ? (ta ? ta.value : true) : null); };
+    back.onclick = e => { if (e.target === back) done(false); const r = e.target.closest('[data-r]')?.dataset.r; if (r) done(r === 'yes'); };
+    back.onkeydown = e => { if (e.key === 'Escape') done(false); };
+    document.body.appendChild(back);
+    if (ta) { ta.focus(); ta.select(); } else back.querySelector('[data-r=yes]').focus();
+  });
+}
+function clearUrl(){ if (location.hash || location.search) history.replaceState(null, '', location.pathname); }
+function confetti(el){
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = el.getBoundingClientRect(), colors = ['#FFD23F', '#FFFFFF', '#7FE0F5', '#FF9E80'];
+  for (let k = 0; k < 30; k++){
+    const s = document.createElement('span'); s.className = 'bit';
+    const ang = Math.random() * Math.PI * 2, d = 120 + Math.random() * 240;
+    Object.assign(s.style, { left: r.left + r.width / 2 + 'px', top: r.top + r.height / 2 + 'px', background: colors[k % 4] });
+    s.style.setProperty('--dx', Math.cos(ang) * d + 'px');
+    s.style.setProperty('--dy', Math.sin(ang) * d - 80 + 'px');
+    s.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+    document.body.appendChild(s); setTimeout(() => s.remove(), 1100);
+  }
+}
+function beep(){
+  try {
+    const ctx = beep.ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+    [0, .25, .5].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), at = ctx.currentTime + t;
+      o.type = 'square'; o.frequency.value = t === .5 ? 880 : 660;
+      g.gain.setValueAtTime(.12, at); g.gain.exponentialRampToValueAtTime(.001, at + .2);
+      o.connect(g).connect(ctx.destination); o.start(at); o.stop(at + .2);
+    });
+  } catch {}
+}
+
+/* ---------- home ---------- */
+let view = 'home';
+async function showHome(){
+  view = 'home'; clearUrl(); stopTimer();
+  const list = loadAll().map(prep);
+  const shareLabel = IN_CLAUDE ? 'Copy code' : 'Copy link';
+  app.innerHTML = `
+  <div class="wrap">
+    <div class="mark"><span class="badge" aria-hidden="true"><span>🦦</span></span>Quizotter</div>
+    <p class="lede">Host a quiz on any video call. Share this tab, read the questions out loud, and reveal the answers one by one.</p>
+    <div class="row">
+      <button class="btn primary" data-act="new">New quiz</button>
+      <button class="btn" data-act="import">Open a quiz file</button>
+      <button class="btn" data-act="paste">Paste a quiz code</button>
+    </div>
+    <h2>Your quizzes</h2>
+    ${list.length ? `<div>${list.map(q => `
+      <div class="qz" data-id="${q.id}">
+        <div><h3>${esc(q.title || 'Untitled quiz')}</h3><small>${isBoard(q) ? '<span class="kind jb">Jeopardy board</span>' : '<span class="kind">Question list</span>'}${describe(q)}</small></div>
+        <div class="row">
+          <button class="link go" data-act="host">Host</button>
+          <button class="link" data-act="edit">Edit</button>
+          <button class="link" data-act="share">${shareLabel}</button>
+          <button class="link" data-act="download">Download</button>
+          <button class="link" data-act="delete">Delete</button>
+        </div>
+      </div>`).join('')}</div>`
+    : `<div class="empty"><p>No quizzes yet. Write your own, or start from a sample to see how hosting works.</p>
+        <div class="row"><button class="btn" data-act="sample">Add the sample quiz</button><button class="btn" data-act="sampleboard">Add the sample board</button></div></div>`}
+    <div id="featured"></div>
+    <p class="tip">Quizzes are saved in this browser. Use ${shareLabel} or Download to move them to another computer or give them to a friend.</p>
+  </div>`;
+  app.oninput = null;
+  app.onclick = e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const quiz = getQuiz(b.closest('[data-id]')?.dataset.id);
+    switch (b.dataset.act){
+      case 'new': { const q = prep({ id: uid(), title: '', settings: normSettings({}), questions: [blankClue()] }); upsert(q); showEdit(q.id); break; }
+      case 'sample': upsert(normalize(SAMPLE)); showHome(); break;
+      case 'sampleboard': upsert(normalize(SAMPLE_BOARD)); showHome(); break;
+      case 'import': fileInput.click(); break;
+      case 'paste': pasteCode(); break;
+      case 'host': startHost(quiz, showHome); break;
+      case 'edit': showEdit(quiz.id); break;
+      case 'share': shareQuiz(quiz); break;
+      case 'download': downloadQuiz(quiz); break;
+      case 'delete':
+        modal({ text: `Delete “${quiz.title || 'Untitled quiz'}”? This can’t be undone.`, ok: 'Delete', danger: true })
+          .then(yes => { if (yes) { removeQuiz(quiz.id); showHome(); } });
+        break;
+    }
+  };
+  // Quizzes committed to the repo's /quizzes folder show up here (self-hosted only)
+  if (IN_CLAUDE) return;
+  try {
+    const res = await fetch('quizzes/index.json', { cache: 'no-cache' });
+    if (!res.ok || view !== 'home') return;
+    const items = (await res.json()).filter(x => x && x.file);
+    if (!items.length) return;
+    document.getElementById('featured').innerHTML = `<h2>On this site</h2><div>${items.map(x => `
+      <div class="qz"><div><h3>${esc(x.title || x.file)}</h3></div>
+      <div class="row"><a class="link go" href="?src=quizzes/${encodeURIComponent(x.file)}">Open</a></div></div>`).join('')}</div>`;
+  } catch {}
+}
+
+fileInput.onchange = async () => {
+  const f = fileInput.files[0]; fileInput.value = ''; if (!f) return;
+  try { const quiz = normalize(JSON.parse(await f.text())); upsert(quiz); toast(`Added “${quiz.title}”`); showHome(); }
+  catch { toast('That file isn’t a Quizotter quiz. Pick a .json file made with Download.'); }
+};
+
+/* ---------- editor (shared shell) ---------- */
+function showEdit(id){
+  const cur = getQuiz(id); if (!cur) return showHome();
+  view = 'edit'; clearUrl();
+  const s = cur.settings, board = isBoard(cur);
+  app.innerHTML = `
+  <div class="wrap ${board ? 'wide' : ''}">
+    <nav class="top"><button class="link" data-act="home">‹ All quizzes</button><span class="saved" id="saved" aria-live="polite"></span></nav>
+    <input class="title-in" id="title" value="${esc(cur.title)}" placeholder="Name your quiz" aria-label="Quiz name">
+    <div class="row">
+      <button class="btn primary" data-act="host">Host this quiz</button>
+      <button class="btn" data-act="share">${IN_CLAUDE ? 'Copy quiz code' : 'Copy share link'}</button>
+      <button class="btn" data-act="download">Download</button>
+    </div>
+    <div class="opts" role="group" aria-label="Game options">
+      <div class="seg" role="group" aria-label="Format">
+        <button data-act="fmt" data-v="list" aria-pressed="${!board}">Question list</button>
+        <button data-act="fmt" data-v="board" aria-pressed="${board}">Jeopardy board</button>
+      </div>
+      <div class="opt-group">
+        <label class="opt"><input type="checkbox" data-o="timerOn" ${s.timerOn ? 'checked' : ''}> Timer</label>
+        <select data-o="timerLen" aria-label="Seconds per question" ${s.timerOn ? '' : 'disabled'}>
+          ${TIMER_CHOICES.map(n => `<option value="${n}" ${n === s.timerLen ? 'selected' : ''}>${n}s</option>`).join('')}
+        </select>
+      </div>
+      <div class="opt-group">
+        <label class="opt"><input type="checkbox" data-o="scoreOn" ${s.scoreOn ? 'checked' : ''}> Keep score</label>
+        <span class="stepper ${s.scoreOn ? '' : 'off'}" id="stepper">
+          <button data-act="pminus" aria-label="Fewer players" ${s.scoreOn ? '' : 'disabled'}>−</button>
+          <b id="pcount">${s.players}</b> players
+          <button data-act="pplus" aria-label="More players" ${s.scoreOn ? '' : 'disabled'}>+</button>
+        </span>
+      </div>
+    </div>
+    <div id="body"></div>
+    <details class="bulk"><summary>${board ? 'Paste clues as text' : 'Paste a list of questions'}</summary>
+      ${board
+        ? '<p>One clue per line as <code>column | question | answer</code>, for example <code>2 | The largest ocean | Pacific</code>. Clues fill each column from the top. Name a column with <code>2 | Geography</code>. Add a fourth part for a host note.</p>'
+        : '<p>One question per line, like <code>Capital of Peru? | Lima</code>. Add a third part for a host note.</p>'}
+      <textarea id="bulk" rows="6" aria-label="Text to paste"></textarea>
+      <button class="btn" data-act="bulk">${board ? 'Add these clues' : 'Add these questions'}</button>
+    </details>
+  </div>`;
+  const saved = document.getElementById('saved');
+  let saveT;
+  const save = () => { saved.textContent = 'Saving…'; clearTimeout(saveT); saveT = setTimeout(() => { if (upsert(cur)) saved.textContent = 'Saved'; }, 300); };
+  const syncOpts = () => {
+    app.querySelector('[data-o=timerLen]').disabled = !s.timerOn;
+    const st = document.getElementById('stepper'); st.classList.toggle('off', !s.scoreOn);
+    st.querySelectorAll('button').forEach(b => b.disabled = !s.scoreOn);
+    document.getElementById('pcount').textContent = s.players;
+  };
+  const ed = board ? boardEditor(cur, save) : listEditor(cur, save);
+  app.oninput = e => {
+    const t = e.target;
+    if (t.id === 'title') { cur.title = t.value; return save(); }
+    if (t.dataset.o) {
+      if (t.type === 'checkbox') s[t.dataset.o] = t.checked; else s[t.dataset.o] = Number(t.value);
+      syncOpts(); return save();
+    }
+    ed.input(e);
+  };
+  app.onclick = e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    switch (b.dataset.act){
+      case 'home': upsert(cur); showHome(); break;
+      case 'host': upsert(cur); startHost(cur, () => showEdit(cur.id)); break;
+      case 'share': upsert(cur); shareQuiz(cur); break;
+      case 'download': downloadQuiz(cur); break;
+      case 'fmt':
+        if (b.dataset.v === s.format) break;
+        s.format = b.dataset.v; prep(cur); upsert(cur); showEdit(cur.id);
+        break;
+      case 'pminus': s.players = clamp(s.players - 1, 1, MAX_PLAYERS); syncOpts(); save(); break;
+      case 'pplus': s.players = clamp(s.players + 1, 1, MAX_PLAYERS); syncOpts(); save(); break;
+      case 'bulk': {
+        const ta = document.getElementById('bulk');
+        const lines = ta.value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(p => p[0]);
+        const msg = ed.bulk(lines);
+        if (!msg) return toast(board ? 'Nothing to add. Use column | question | answer on each line.' : 'Nothing to add. Use one line per question.');
+        ta.value = ''; ed.render(); save(); toast(msg);
+        break;
+      }
+      default: ed.click(b);
+    }
+  };
+  ed.render();
+  if (!cur.title) document.getElementById('title').focus();
+}
+
+function listEditor(cur, save){
+  const body = document.getElementById('body'), qs = cur.questions;
+  const render = (focusLast) => {
+    body.innerHTML = `<ol class="qlist">${qs.map((x, i) => `
+      <li class="qrow" data-i="${i}">
+        <div class="qnum">${i + 1}</div>
+        <div class="qfields">
+          <textarea data-f="q" rows="2" placeholder="Question ${i + 1}" aria-label="Question ${i + 1}">${esc(x.q)}</textarea>
+          <textarea data-f="a" rows="${lineCount(x.a)}" placeholder="Answer (press Enter for a new line, up to 5)" aria-label="Answer ${i + 1}">${esc(x.a)}</textarea>
+          <input data-f="note" value="${esc(x.note)}" placeholder="Host note or fun fact (optional)" aria-label="Note ${i + 1}">
+        </div>
+        <div class="qtools">
+          <button data-act="up" aria-label="Move question ${i + 1} up" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button data-act="down" aria-label="Move question ${i + 1} down" ${i === qs.length - 1 ? 'disabled' : ''}>↓</button>
+          <button data-act="del" class="del" aria-label="Delete question ${i + 1}">✕</button>
+        </div>
+      </li>`).join('')}</ol>
+      <button class="btn" data-act="add">Add question</button>`;
+    if (focusLast) body.querySelector('.qrow:last-child textarea')?.focus();
+  };
+  return {
+    render,
+    input(e){
+      const t = e.target, f = t.dataset.f, row = t.closest('.qrow');
+      if (!f || !row) return;
+      if (f === 'a') limitAnswer(t);
+      qs[+row.dataset.i][f] = t.value; save();
+    },
+    click(b){
+      const i = +b.closest('.qrow')?.dataset.i;
+      switch (b.dataset.act){
+        case 'add': qs.push(blankClue()); render(true); save(); break;
+        case 'up': [qs[i - 1], qs[i]] = [qs[i], qs[i - 1]]; render(); save(); break;
+        case 'down': [qs[i + 1], qs[i]] = [qs[i], qs[i + 1]]; render(); save(); break;
+        case 'del': {
+          const drop = () => { qs.splice(i, 1); render(); save(); };
+          if (!qs[i].q && !qs[i].a) drop();
+          else modal({ text: `Delete question ${i + 1}?`, ok: 'Delete', danger: true }).then(yes => { if (yes) drop(); });
+          break;
+        }
+      }
+    },
+    bulk(lines){
+      const added = lines.map(([q, a = '', note = '']) => ({ q, a, note }));
+      if (!added.length) return '';
+      if (qs.length === 1 && !qs[0].q && !qs[0].a) qs.length = 0; // replace the starter blank question
+      qs.push(...added); return `Added ${plural(added.length, 'question')}`;
+    },
+  };
+}
+function limitAnswer(t){
+  if (t.value.split('\n').length > MAX_ANSWER_LINES) { t.value = capLines(t.value); toast('Answers can be up to 5 lines.'); }
+  t.rows = lineCount(t.value);
+}
+
+/* the board editor: categories across the top, point values down the side, click any cell to write its clue */
+function boardEditor(cur, save){
+  const body = document.getElementById('body'), B = cur.board;
+  const addRow = () => {
+    const v = B.values, step = v.length > 1 ? v[v.length - 1] - v[v.length - 2] : 100;
+    v.push((v[v.length - 1] ?? 0) + (step || 100)); B.categories.forEach(c => c.clues.push(blankClue()));
+  };
+  const addCat = () => B.categories.push({ name: '', clues: B.values.map(blankClue) });
+  const render = () => {
+    const unit = cur.settings.unit;
+    body.innerHTML = `
+      <div class="bd-scroll"><div class="bd-grid" style="--cols:${B.categories.length}">
+        <div class="bd-corner"><select data-b="unit" aria-label="Value type">
+          <option value="$" ${unit === '$' ? 'selected' : ''}>$</option><option value="pts" ${unit === 'pts' ? 'selected' : ''}>Points</option></select></div>
+        ${B.categories.map((c, ci) => `<input class="bd-cat" data-c="${ci}" value="${esc(c.name)}" placeholder="Category ${ci + 1}" aria-label="Category ${ci + 1} name">`).join('')}
+        ${B.values.map((v, r) => `
+          <input class="bd-val" type="number" data-v="${r}" value="${v}" aria-label="Value for row ${r + 1}">
+          ${B.categories.map((c, ci) => { const x = c.clues[r], filled = !!x.q.trim();
+            return `<button class="bd-cell ${filled ? 'filled' : ''}" data-act="clue" data-c="${ci}" data-r="${r}"
+              aria-label="${esc(c.name || 'Category ' + (ci + 1))} for ${money(v, cur)}: ${filled ? esc(x.q) : 'empty'}">
+              <span class="t">${filled ? esc(x.q) : '+ Add clue'}</span></button>`; }).join('')}`).join('')}
+      </div></div>
+      <div class="bd-tools">
+        <button class="btn" data-act="addcat" ${B.categories.length >= MAX_CATS ? 'disabled' : ''}>Add category</button>
+        <button class="btn" data-act="rmcat" ${B.categories.length < 2 ? 'disabled' : ''}>Remove last category</button>
+        <button class="btn" data-act="addrow" ${B.values.length >= MAX_ROWS ? 'disabled' : ''}>Add row</button>
+        <button class="btn" data-act="rmrow" ${B.values.length < 2 ? 'disabled' : ''}>Remove last row</button>
+      </div>`;
+  };
+  const editClue = (ci, r) => {
+    const c = B.categories[ci], x = c.clues[r];
+    const back = document.createElement('div'); back.className = 'modal-back';
+    back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Edit clue">
+      <p>${esc(c.name || 'Category ' + (ci + 1))} for ${money(B.values[r], cur)}</p>
+      <label>Question<textarea class="field" data-k="q" rows="3">${esc(x.q)}</textarea></label>
+      <label>Answer (up to 5 lines)<textarea class="field" data-k="a" rows="${lineCount(x.a)}">${esc(x.a)}</textarea></label>
+      <label>Host note (optional)<input data-k="note" value="${esc(x.note)}"></label>
+      <div class="row spread"><button class="link" data-r="clear">Clear clue</button><button class="btn primary" data-r="done">Done</button></div>
+    </div>`;
+    const close = () => { back.remove(); render(); body.querySelector(`.bd-cell[data-c="${ci}"][data-r="${r}"]`)?.focus(); };
+    back.oninput = e => { const k = e.target.dataset.k; if (!k) return; if (k === 'a') limitAnswer(e.target); x[k] = e.target.value; save(); };
+    back.onclick = e => {
+      if (e.target === back) return close();
+      const act = e.target.closest('[data-r]')?.dataset.r;
+      if (act === 'done') close();
+      if (act === 'clear') { Object.assign(x, blankClue()); save(); close(); }
+    };
+    back.onkeydown = e => { if (e.key === 'Escape') close(); };
+    document.body.appendChild(back);
+    back.querySelector('[data-k=q]').focus();
+  };
+  const rowUsed = r => B.categories.some(c => c.clues[r].q || c.clues[r].a);
+  const catUsed = c => c.name || c.clues.some(x => x.q || x.a);
+  return {
+    render,
+    input(e){
+      const t = e.target;
+      if (t.dataset.b === 'unit') { cur.settings.unit = t.value; render(); return save(); }
+      if (t.dataset.v != null) { B.values[+t.dataset.v] = Number(t.value) || 0; return save(); }
+      if (t.dataset.c != null && t.classList.contains('bd-cat')) { B.categories[+t.dataset.c].name = t.value; save(); }
+    },
+    click(b){
+      switch (b.dataset.act){
+        case 'clue': editClue(+b.dataset.c, +b.dataset.r); break;
+        case 'addcat': addCat(); render(); save(); [...body.querySelectorAll('.bd-cat')].pop()?.focus(); break;
+        case 'addrow': addRow(); render(); save(); break;
+        case 'rmcat': {
+          const last = B.categories[B.categories.length - 1];
+          const drop = () => { B.categories.pop(); render(); save(); };
+          if (!catUsed(last)) drop();
+          else modal({ text: `Remove the “${last.name || 'last'}” category and its clues?`, ok: 'Remove', danger: true }).then(y => { if (y) drop(); });
+          break;
+        }
+        case 'rmrow': {
+          const r = B.values.length - 1;
+          const drop = () => { B.values.pop(); B.categories.forEach(c => c.clues.pop()); render(); save(); };
+          if (!rowUsed(r)) drop();
+          else modal({ text: `Remove the ${money(B.values[r], cur)} row and its clues?`, ok: 'Remove', danger: true }).then(y => { if (y) drop(); });
+          break;
+        }
+      }
+    },
+    bulk(lines){
+      let clues = 0, names = 0;
+      for (const parts of lines){
+        const col = parseInt(parts[0], 10);
+        if (!Number.isFinite(col) || col < 1 || col > MAX_CATS || parts.length < 2 || !parts[1]) continue;
+        while (B.categories.length < col) addCat();
+        const c = B.categories[col - 1];
+        if (parts.length === 2) { c.name = parts[1]; names++; continue; }
+        let r = c.clues.findIndex(x => !x.q && !x.a);
+        if (r < 0) { if (B.values.length >= MAX_ROWS) continue; addRow(); r = c.clues.length - 1; }
+        c.clues[r] = { q: parts[1], a: capLines((parts[2] || '').replace(/\\n/g, '\n')), note: parts[3] || '' };
+        clues++;
+      }
+      if (!clues && !names) return '';
+      return [clues && `Added ${plural(clues, 'clue')}`, names && `named ${plural(names, 'category', 'categories')}`].filter(Boolean).join(', ');
+    },
+  };
+}
+
+/* ---------- preview (opened from a share link, a quiz code or a repo file) ---------- */
+function showPreview(quiz){
+  view = 'preview';
+  app.innerHTML = `
+  <div class="wrap preview">
+    <button class="link" data-act="home">‹ Quizotter</button>
+    <div class="mark" style="font-size:clamp(36px,7vw,60px)">${esc(quiz.title)}</div>
+    <p class="count">${describe(quiz)}</p>
+    <div class="row">
+      <button class="btn primary" data-act="host">Host now</button>
+      <button class="btn" data-act="save">Save a copy to edit</button>
+    </div>
+    <p class="tip">Want to see the answers privately? Open this same quiz on your phone and host from there too, while you share your computer screen on the call.</p>
+  </div>`;
+  app.oninput = null;
+  app.onclick = e => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (act === 'home') showHome();
+    if (act === 'host') startHost(quiz, () => showPreview(quiz));
+    if (act === 'save') { const copy = { ...quiz, id: uid() }; upsert(copy); toast('Saved to your quizzes'); showEdit(copy.id); }
+  };
+}
+
+/* ---------- host mode ---------- */
+let H = null;
+function freeAnimal(after = -1){
+  const used = new Set(H.players.map(p => p.a));
+  for (let k = 1; k <= ANIMALS.length; k++){ const a = (after + k) % ANIMALS.length; if (!used.has(a)) return a; }
+  return 0;
+}
+function newPlayer(){ const a = freeAnimal(); return { a, name: ANIMALS[a].name, score: 0 }; }
+// what a click on a player is worth: 1 in a question list, the open clue's value on a board
+const pts = () => H.board ? (H.value ?? H.quiz.board.values[0]) : 1;
+
+function showHost(quiz, onExit){
+  view = 'host';
+  const s = normSettings(quiz.settings), board = isBoard(quiz);
+  H = { quiz, onExit, s, board, i: 0, shown: false, screen: 'board', used: new Set(), seen: new Set(), revisit: false, cur: null, value: null,
+        players: [], editing: null, len: s.timerLen, left: s.timerLen, tick: null };
+  if (s.scoreOn) for (let k = 0; k < s.players; k++) H.players.push(newPlayer());
+  app.innerHTML = `
+  <div class="stage" id="stage">
+    <div class="progress" id="progress"></div>
+    <div class="bar">
+      <button class="sbtn" data-act="exit">✕ Exit</button>
+      ${board ? '<button class="sbtn back-top" data-act="toboard" id="barBoard" hidden>‹ Back to board</button>' : ''}
+      <span class="grow">${esc(quiz.title || 'Quiz')}</span>
+      ${s.timerOn ? `<div class="timer">
+        <button class="sbtn" data-act="timer" id="tbtn">Start timer</button>
+        <span class="clock" id="clock"></span>
+        <select id="tlen" aria-label="Timer length">${[...new Set([...TIMER_CHOICES, s.timerLen])].sort((a, b) => a - b)
+          .map(n => `<option value="${n}" ${n === s.timerLen ? 'selected' : ''}>${n}s</option>`).join('')}</select>
+      </div>` : ''}
+    </div>
+    <main class="stage-main" id="stageMain" aria-live="polite"></main>
+    <div><div class="controls" id="controls"></div><div class="keys" id="keys"></div></div>
+    ${s.scoreOn ? '<div class="roster" id="roster" aria-label="Players"></div>' : '<div></div>'}
+  </div>`;
+  app.oninput = e => { if (e.target.id === 'tlen') { H.len = H.left = +e.target.value; stopTimer(); renderClock(); } };
+  app.onclick = e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const p = +b.closest('[data-p]')?.dataset.p;
+    switch (b.dataset.act){
+      case 'exit': stopTimer(); H.onExit(); break;
+      case 'prev': go(-1); break;
+      case 'next': go(1); break;
+      case 'reveal': toggleReveal(); break;
+      case 'timer': toggleTimer(); break;
+      case 'tile': openClue(+b.dataset.c, +b.dataset.r); break;
+      case 'toboard': toBoard(); break;
+      case 'final': H.screen = 'end'; stopTimer(); renderStage(); break;
+      case 'award': award(p, 1); break;
+      case 'dock': award(p, -1); break;
+      case 'rename': startRename(p); break;
+      case 'addp':
+        if (H.players.length < MAX_PLAYERS) { H.players.push(newPlayer()); startRename(H.players.length - 1); }
+        break;
+      case 'swap': {
+        const pl = H.players[p], inp = document.querySelector('.pin');
+        const wasDefault = inp.value.trim() === ANIMALS[pl.a].name;
+        pl.a = freeAnimal(pl.a);
+        if (wasDefault) inp.value = ANIMALS[pl.a].name;
+        pl.draft = inp.value; startRename(p);
+        break;
+      }
+      case 'remove': H.players.splice(p, 1); H.editing = null; renderRoster(); break;
+    }
+  };
+  renderStage(); renderRoster(); renderClock();
+}
+
+function setControls(html, keys){
+  document.getElementById('controls').innerHTML = html;
+  document.getElementById('keys').textContent = keys;
+}
+const scoreKeys = () => H.s.scoreOn ? (H.board ? `click a player to give ${money(pts(), H.quiz)}` : 'number keys give points (Shift takes them away)') : '';
+const hint = (...parts) => [...parts, H.s.timerOn && 'T starts the timer', scoreKeys()].filter(Boolean).join(', ');
+
+function renderStage(){
+  const main = document.getElementById('stageMain');
+  main.classList.toggle('is-board', H.board && H.screen === 'board');
+  return H.board ? renderBoardStage(main) : renderListStage(main);
+}
+function renderListStage(main){
+  const { quiz, i, shown } = H, n = quiz.questions.length;
+  document.getElementById('progress').style.width = (Math.min(i, n) / n * 100) + '%';
+  if (i >= n) {
+    renderEnd(main);
+    return setControls(`<button class="sbtn big" data-act="prev">‹ Back</button>`, 'Arrow keys move');
+  }
+  renderClue(main, `Question ${i + 1} of ${n}`, quiz.questions[i], shown);
+  setControls(`
+    <button class="sbtn big" data-act="prev" ${i === 0 ? 'disabled' : ''}>‹ Back</button>
+    <button class="sbtn big reveal" data-act="reveal">${shown ? 'Hide answer' : 'Reveal answer'}</button>
+    <button class="sbtn big" data-act="next">${i === n - 1 ? 'Finish ›' : 'Next ›'}</button>`,
+    hint('Space reveals', 'arrow keys move'));
+}
+function renderClue(main, tag, x, shown, played = false){
+  const len = x.q.length;
+  main.innerHTML = `
+    <div class="tagrow"><div class="qtag">${esc(tag)}</div>${played ? '<span class="played-tag">✓ Already played</span>' : ''}</div>
+    <h1 class="qtext ${len < 60 ? 'xl' : len < 140 ? 'l' : 'm'}">${esc(x.q) || '…'}</h1>
+    ${shown ? `<div class="answer shown ${x.a.includes('\n') ? 'multi' : ''}" id="ans">${esc(x.a.trim()) || 'No answer written'}</div>${x.note ? `<p class="note">${esc(x.note)}</p>` : ''}`
+            : `<div class="answer hidden">Answer hidden</div>`}`;
+}
+function renderEnd(main){
+  const ranked = [...H.players].sort((a, b) => b.score - a.score);
+  main.innerHTML = `<div class="end"><h1>That’s the quiz!</h1></div>
+    ${ranked.length ? `<ol class="board">${ranked.map(p => `<li><span>${ANIMALS[p.a].e} ${esc(p.name)}</span><span>${money(p.score, H.quiz)}</span></li>`).join('')}</ol>`
+      : `<p class="note">Thanks for playing.</p>`}`;
+  if (ranked.length) requestAnimationFrame(() => confetti(main.querySelector('.board li')));
+}
+
+function renderBoardStage(main){
+  const { quiz } = H, B = quiz.board, total = clueCount(quiz), played = H.used.size;
+  document.getElementById('progress').style.width = (played / total * 100) + '%';
+  document.getElementById('barBoard').hidden = H.screen === 'board';
+  if (H.screen === 'end') {
+    renderEnd(main);
+    return setControls('', 'Esc goes back to the board');
+  }
+  if (H.screen === 'clue') {
+    const { c, r } = H.cur, cat = B.categories[c];
+    renderClue(main, `${cat.name || 'Category ' + (c + 1)} for ${money(B.values[r], quiz)}`, cat.clues[r], H.shown, H.revisit);
+    // controls never move: Back to board stays top left, the reveal button stays here and only changes its label
+    return setControls(`<button class="sbtn big reveal" data-act="reveal">${H.shown ? 'Hide answer' : 'Reveal answer'}</button>`,
+      hint('Space reveals', 'Esc goes back to the board'));
+  }
+  main.innerHTML = `<div class="grid" style="--cols:${B.categories.length};--rows:${B.values.length}">
+    ${B.categories.map((c, ci) => `<div class="cat">${esc(c.name || 'Category ' + (ci + 1))}</div>`).join('')}
+    ${B.values.map((v, r) => B.categories.map((c, ci) => {
+      const empty = !c.clues[r].q.trim(), played = H.used.has(ci + '-' + r);
+      return `<button class="tile ${played ? 'played' : ''}" data-act="tile" data-c="${ci}" data-r="${r}" ${empty ? 'disabled' : ''} aria-label="${esc(c.name || 'Category ' + (ci + 1))} for ${money(v, quiz)}${played ? ', already played' : ''}" ${played ? 'title="Already played. Click to look again."' : ''}>${money(v, quiz)}</button>`;
+    }).join('')).join('')}
+  </div>`;
+  const allDone = played >= total;
+  setControls(`<button class="sbtn big ${allDone ? 'gold' : ''}" data-act="final">Final scores</button>`,
+    allDone ? 'Every clue has been played' : 'Click a tile to open its clue');
+}
+function openClue(c, r){
+  const key = c + '-' + r;
+  H.revisit = H.used.has(key);
+  H.cur = { c, r }; H.value = H.quiz.board.values[r]; H.used.add(key);
+  // a clue opened again shows its answer right away if it was revealed before
+  H.screen = 'clue'; H.shown = H.revisit && H.seen.has(key); stopTimer(); H.left = H.len; renderClock();
+  renderStage(); renderRoster();
+}
+function toBoard(){ if (!H.board) return; H.screen = 'board'; H.shown = false; stopTimer(); renderStage(); }
+function go(d){
+  if (H.board) return;
+  const n = H.quiz.questions.length, to = Math.max(0, Math.min(n, H.i + d));
+  if (to === H.i) return;
+  H.i = to; H.shown = false; stopTimer(); H.left = H.len; renderClock(); renderStage();
+}
+function toggleReveal(){
+  if (H.board ? H.screen !== 'clue' : H.i >= H.quiz.questions.length) return;
+  H.shown = !H.shown; if (H.shown) stopTimer();
+  if (H.shown && H.board) H.seen.add(H.cur.c + '-' + H.cur.r);
+  renderStage();
+  if (H.shown && !H.revisit) confetti(document.getElementById('ans'));
+}
+const atEnd = () => H.board ? H.screen === 'end' : H.i >= H.quiz.questions.length;
+
+/* ---------- timer (optional) ---------- */
+function renderClock(){
+  const c = document.getElementById('clock'); if (!c) return;
+  c.textContent = `${Math.floor(H.left / 60)}:${String(H.left % 60).padStart(2, '0')}`;
+  c.classList.toggle('low', H.left <= 5);
+  document.getElementById('tbtn').textContent = H.tick ? 'Pause' : (H.left < H.len && H.left > 0 ? 'Resume' : 'Start timer');
+}
+function toggleTimer(){
+  if (!H.s.timerOn) return;
+  if (H.tick) { stopTimer(); return renderClock(); }
+  if (H.left <= 0) H.left = H.len;
+  document.getElementById('clock').classList.remove('done');
+  H.tick = setInterval(() => {
+    H.left--; renderClock();
+    if (H.left <= 0){ stopTimer(); renderClock(); beep(); document.getElementById('clock').classList.add('done'); }
+  }, 1000);
+  renderClock();
+}
+function stopTimer(){ if (H?.tick) { clearInterval(H.tick); H.tick = null; } }
+
+/* ---------- player roster (optional): click the animal to award, the name to rename ---------- */
+function renderRoster(bump){
+  const roster = document.getElementById('roster'); if (!roster) return;
+  const old = roster.querySelector('.pin'); if (old) old.onblur = null; // re-rendering isn't a "done editing"
+  const worth = money(pts(), H.quiz);
+  // whoever is out in front (with more than 0) wears the crown; ties share it
+  const best = Math.max(0, ...H.players.map(p => p.score));
+  const crown = p => best > 0 && p.score === best ? '<span class="crown" aria-hidden="true">👑</span>' : '';
+  roster.innerHTML = H.players.map((p, i) => {
+    const an = ANIMALS[p.a];
+    if (H.editing === i) return `
+      <div class="pcard editing" data-p="${i}">
+        <span class="pa" aria-hidden="true">${crown(p)}${an.e}</span>
+        <input class="pin" value="${esc(p.draft ?? p.name)}" maxlength="24" aria-label="Player name">
+        <div class="pedit"><button data-act="swap">New animal</button><button data-act="remove">Remove</button></div>
+      </div>`;
+    return `
+      <div class="pcard" data-p="${i}">
+        ${i < 10 ? `<span class="pk" aria-hidden="true">${(i + 1) % 10}</span>` : ''}
+        <button class="pa" data-act="award" aria-label="Give ${worth} to ${esc(p.name)}${crown(p) ? ', in the lead' : ''}" title="Give ${worth}">${crown(p)}${an.e}</button>
+        <button class="pn" data-act="rename" title="Click to rename">${esc(p.name)}</button>
+        <div class="ps"><b class="${p.score < 0 ? 'neg' : ''}">${money(p.score, H.quiz)}</b>
+          <button class="pm" data-act="dock" aria-label="Take ${worth} from ${esc(p.name)}" title="Take ${worth}">−</button></div>
+      </div>`;
+  }).join('') + (H.players.length < MAX_PLAYERS ? `<button class="pcard empty" data-act="addp" aria-label="Add a player" title="Add a player">+</button>` : '');
+  if (bump) roster.querySelector(`.pcard[data-p="${bump.i}"]`)?.classList.add(bump.dir > 0 ? 'up' : 'down');
+  const inp = roster.querySelector('.pin');
+  if (inp) {
+    // keep the input focused when clicking "New animal" or "Remove"
+    roster.querySelectorAll('.pedit button').forEach(b => b.onpointerdown = e => e.preventDefault());
+    inp.onkeydown = e => {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+      if (e.key === 'Escape') { e.preventDefault(); delete H.players[H.editing].draft; H.editing = null; inp.onblur = null; renderRoster(); }
+    };
+    inp.onblur = () => {
+      const p = H.players[H.editing]; if (!p) return;
+      p.name = inp.value.trim() || ANIMALS[p.a].name; delete p.draft;
+      H.editing = null; renderRoster();
+    };
+  }
+}
+function startRename(i){
+  H.editing = i; renderRoster();
+  const inp = document.querySelector('.pin');
+  if (inp) { inp.focus(); inp.select(); }
+}
+function award(i, dir){
+  const p = H.players[i]; if (!p || H.editing === i) return;
+  p.score += dir * pts(); renderRoster({ i, dir });
+  if (atEnd()) renderStage();
+}
+
+document.addEventListener('keydown', e => {
+  if (view !== 'host' || e.target.matches('input, textarea, select') || document.querySelector('.modal-back')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key, digit = /^Digit([0-9])$/.exec(e.code);
+  if (digit && H.s.scoreOn) { e.preventDefault(); award((+digit[1] + 9) % 10, e.shiftKey ? -1 : 1); }
+  else if (k === 'ArrowRight' || k === 'PageDown') { e.preventDefault(); go(1); }
+  else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); go(-1); }
+  else if (k === ' ') { e.preventDefault(); toggleReveal(); }
+  else if (k === 'Enter' && !e.target.matches('button, a')) { e.preventDefault(); toggleReveal(); }
+  else if (k === 'Escape') toBoard();
+  else if (k === 't' || k === 'T') toggleTimer();
+});
+
+/* ---------- start ---------- */
+(async function boot(){
+  const src = new URLSearchParams(location.search).get('src');
+  if (location.hash.startsWith('#q=')){
+    try { return showPreview(await decodeQuiz(location.hash.slice(3))); }
+    catch { showHome(); return toast('This share link is incomplete. Ask for a fresh link.'); }
+  }
+  if (src && !IN_CLAUDE){
+    try {
+      const url = new URL(src, location.href);
+      if (url.origin !== location.origin) throw 0;
+      const res = await fetch(url); if (!res.ok) throw 0;
+      return showPreview(normalize(await res.json()));
+    } catch { showHome(); return toast(`Couldn’t load ${src}. Check the file name in the quizzes folder.`); }
+  }
+  showHome();
+})();
+</script>
+</body>
+</html>
